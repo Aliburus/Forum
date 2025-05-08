@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const commentController = require("../controllers/commentController");
-const verifyToken = require("../middleware/verifyToken");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 router.post("/comments", verifyToken, commentController.createComment);
 router.put(

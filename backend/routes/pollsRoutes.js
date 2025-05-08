@@ -7,8 +7,8 @@ const {
   updatePoll,
   deletePoll,
   votePoll,
-} = require("../controller/pollsController");
-const verifyToken = require("../middleware/verifyToken");
+} = require("../controllers/pollsController");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 router.post("/polls", verifyToken, createPoll);
 router.put("/polls/:id", verifyToken, updatePoll);

@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const COMMENT = require("../models/commentModel");
-const verifyToken = require("../middleware/verifyToken");
+const verifyToken = require("../middleware/authMiddleware");
 
 const createComment = async (req, res) => {
   try {
