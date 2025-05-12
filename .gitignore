@@ -1,21 +1,7 @@
-# Node.js
+@"
+# Ortak
 node_modules/
 .env
-.env.local
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Build outputs
-dist/
-build/
-
-# OS-specific files
-.DS_Store
-Thumbs.db
-
-# Logs
-logs/
 *.log
 
 # Frontend
@@ -25,5 +11,10 @@ frontend/dist/
 
 # Backend
 backend/node_modules/
-backend/dist/
 backend/build/
+backend/dist/
+
+# Sistem
+.DS_Store
+Thumbs.db
+"@ | Set-Content .gitignore
