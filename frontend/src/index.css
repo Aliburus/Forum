@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light dark;
+  background-color: #f5f5f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  body {
+    @apply m-0 min-w-[320px] min-h-screen bg-gray-50;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 
+           transition-all duration-300 transform hover:scale-105 
+           flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-icon {
+    @apply p-2 rounded-full transition-all duration-300 hover:bg-gray-100
+           transform hover:scale-110 focus:outline-none focus:ring-2 
+           focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .input-primary {
+    @apply w-full border-0 focus:ring-2 focus:ring-primary-500 
+           text-lg placeholder-gray-400 resize-none focus:outline-none
+           rounded-lg transition-all duration-300;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm p-4 hover:shadow-md 
+           transition-all duration-300 transform hover:translate-y-[-2px];
+  }
+
+  .poll-option {
+    @apply w-full p-3 rounded-lg border transition-all duration-300
+           hover:border-primary-500 hover:bg-primary-50 focus:outline-none
+           focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .sidebar-link {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300
+           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+
+  .sidebar-link.active {
+    @apply bg-primary-50 text-primary-500;
+  }
+}
+
+.animate-like {
+  animation: like-animation 0.5s ease-in-out;
+}
+
+@keyframes like-animation {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-repost {
+  animation: repost-animation 0.5s ease-in-out;
+}
+
+@keyframes repost-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
