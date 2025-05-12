@@ -1,0 +1,18 @@
+# Ortak
+node_modules/
+.env
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# Backend
+backend/node_modules/
+backend/build/
+backend/dist/
+
+# Sistem
+.DS_Store
+Thumbs.db
