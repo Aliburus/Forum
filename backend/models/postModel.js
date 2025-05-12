@@ -8,6 +8,10 @@ const postSchema = new Schema(
       ref: "User",
       required: true,
     },
+    content: {
+      type: String,
+      required: true,
+    },
     like: {
       type: Number,
       default: 0,
@@ -16,27 +20,21 @@ const postSchema = new Schema(
       type: Number,
       default: 0,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
-
-    title: {
-      type: String,
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
+    likedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    dislikedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
+
 const POST = mongoose.model("Post", postSchema);
 module.exports = POST;

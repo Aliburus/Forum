@@ -1,23 +1,45 @@
 const { Poll, PollOption, PollVote } = require("../models/pollsModel");
-
+const Post = require("../models/postModel");
 const createPoll = async (req, res) => {
   try {
-    const { question, options } = req.body;
-    const user = req.user.id;
+    console.log("📝 createPoll body:", req.body);
+    console.log("👤 authenticated user:", req.user);
 
-    const newPoll = new Poll({ question, user });
-    await newPoll.save();
+    const { postId, question, options, duration } = req.body;
 
-    const optionDocs = options.map((opt) => ({
-      poll_id: newPoll._id,
-      option: opt,
-    }));
-    await PollOption.insertMany(optionDocs);
+    // Gerekli alan kontrolü
+    if (
+      !postId ||
+      !question?.trim() ||
+      !Array.isArray(options) ||
+      options.length < 2 ||
+      !duration
+    ) {
+      return res.status(400).json({
+        error: "postId, question, en az 2 seçenek ve duration gerekli",
+      });
+    }
 
-    res.status(201).json({ message: "Poll created successfully" });
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: "İlgili gönderi bulunamadı" });
+    }
+
+    const newPoll = new Poll({
+      post: postId,
+      question: question.trim(), // ← artık gönderiyoruz
+      options: options.map((text) => ({ text: text.trim(), votes: 0 })),
+      duration,
+      user: req.user.id, // ← schema’daki user alanı
+    });
+
+    const saved = await newPoll.save();
+    return res.status(201).json(saved);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error("🔥 createPoll ERROR:", err);
+    return res
+      .status(500)
+      .json({ message: "Server Error", detail: err.message });
   }
 };
 
@@ -127,7 +149,6 @@ const votePoll = async (req, res) => {
     });
 
     await newVote.save();
-    await PollOption.findByIdAndUpdate(optionId, { $inc: { votes: 1 } });
 
     res.status(201).json({ message: "Vote recorded successfully" });
   } catch (err) {

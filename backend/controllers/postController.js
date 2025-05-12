@@ -1,36 +1,45 @@
 const POST = require("../models/postModel");
-const verifyToken = require("../middleware/authMiddleware"); // JWT doğrulama middleware'ini ekliyoruz
 
 // Post oluşturma
+const Post = require("../models/postModel");
+
 const createPost = async (req, res) => {
   try {
-    const { title, content } = req.body;
-    const user = req.user.id; // JWT'den alınan user id'si
+    console.log("📝 createPost body:", req.body);
+    console.log("👤 authenticated user:", req.user);
 
-    const newPost = new POST({
-      user,
-      title,
+    const { content } = req.body;
+    if (!content) {
+      return res.status(400).json({ error: "Content is required" });
+    }
+
+    const newPost = new Post({
+      user: req.user.id, // verifyToken middleware’ın req.user.id verdiğinden emin ol
       content,
+      // (Title artık schema’da yok, başka required alan da yok.)
     });
-    await newPost.save();
-    res.status(201).json({ message: "Post created successfully" });
+
+    const saved = await newPost.save();
+    // populate edip dön
+    const populated = await saved.populate("user", "name username");
+    return res.status(201).json(populated);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error("🔥 createPost ERROR:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
 // Postları getirme
 const getPosts = async (req, res) => {
   try {
-    const posts = await POST.find().populate(
-      "user",
-      "name surname email userType"
-    );
-    res.status(200).json(posts);
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .populate("user", "name username") // <-- burayı ekledik
+      .lean();
+    res.json(posts);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -68,6 +77,62 @@ const deletePost = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+const likePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const post = await POST.findById(id);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    if (post.likedBy.includes(userId)) {
+      return res.status(400).json({ message: "Bu postu zaten beğendiniz" });
+    }
+
+    if (post.dislikedBy.includes(userId)) {
+      post.dislikedBy.pull(userId);
+      post.dislike -= 1;
+    }
+
+    post.like += 1;
+    post.likedBy.push(userId);
+    await post.save();
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error("🔥 likePost ERROR:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Dislike post
+const dislikePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const post = await POST.findById(id);
+    if (!post) return res.status(404).json({ message: "Post not found" });
+
+    if (post.dislikedBy.includes(userId)) {
+      return res.status(400).json({ message: "Bu postu zaten beğenmediniz" });
+    }
+
+    if (post.likedBy.includes(userId)) {
+      post.likedBy.pull(userId);
+      post.like -= 1;
+    }
+
+    post.dislike += 1;
+    post.dislikedBy.push(userId);
+    await post.save();
+
+    res.status(200).json(post);
+  } catch (err) {
+    console.error("🔥 dislikePost ERROR:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
 
 // Routes'da doğrulama işlemi eklemek için middleware ekleyin
 module.exports = {
@@ -75,4 +140,6 @@ module.exports = {
   getPosts,
   updatePost,
   deletePost,
+  likePost,
+  dislikePost,
 };

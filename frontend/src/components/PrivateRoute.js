@@ -11,7 +11,6 @@ const PrivateRoute = ({ children }) => {
   try {
     const decoded = jwtDecode(token);
 
-    // Token geçerli ve süresi dolmamışsa, çocuk bileşeni render et
     if (decoded.exp * 1000 < Date.now()) {
       return <Navigate to="/login" />;
     }

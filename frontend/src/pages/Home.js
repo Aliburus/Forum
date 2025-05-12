@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LogOut,
   Home as HomeIcon,
   Bell,
-  User,
+  User as UserIcon,
   Search,
   MessageSquare,
   Bookmark,
@@ -15,112 +15,58 @@ import {
 } from "lucide-react";
 import Post from "../components/Post";
 import CreatePost from "../components/CreatePost";
+import { getPosts } from "../services/postServices";
 
 const Home = () => {
   const navigate = useNavigate();
 
-  // Dummy data for demonstration
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      user: "Ahmet Yılmaz",
-      username: "@ahmet",
-      content: "React ile geliştirme yapmak çok keyifli!",
-      likes: 15,
-      comments: 3,
-      reposts: 2,
-      time: "2s",
-    },
-    {
-      id: 2,
-      user: "Mehmet Demir",
-      username: "@mehmet",
-      content: "Yeni projeme başladım. Heyecanlıyım!",
-      likes: 24,
-      comments: 5,
-      reposts: 7,
-      time: "15d",
-    },
-    {
-      id: 3,
-      user: "Ayşe Kaya",
-      username: "@ayse",
-      content: "En sevdiğiniz programlama dili hangisi?",
-      likes: 42,
-      comments: 8,
-      reposts: 12,
-      time: "3h",
-      poll: {
-        options: [
-          { text: "JavaScript", votes: 150 },
-          { text: "Python", votes: 120 },
-          { text: "Java", votes: 80 },
-          { text: "C++", votes: 50 },
-        ],
-        totalVotes: 400,
-        timeLeft: "2 gün",
-      },
-    },
-    {
-      id: 4,
-      user: "Zeynep Yıldız",
-      username: "@zeynep",
-      content:
-        "Bu hafta sonu kodlama maratonu düzenliyoruz. Katılmak isteyenler bana mesaj atabilir!",
-      likes: 18,
-      comments: 7,
-      reposts: 5,
-      time: "1d",
-    },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [trendingTopics] = useState([
-    { id: 1, name: "#React", posts: "12.5K" },
-    { id: 2, name: "#JavaScript", posts: "8.2K" },
-    { id: 3, name: "#WebDev", posts: "5.7K" },
-    { id: 4, name: "#CodingLife", posts: "3.9K" },
-  ]);
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await getPosts();
+        const normalized = response.data.map((p) => ({
+          ...p,
+          id: p._id || p.id,
+        }));
+        setPosts(normalized);
+      } catch (err) {
+        console.error("Post fetch error:", err);
+        setError("Gönderiler yüklenirken bir hata oluştu.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const [suggestedUsers] = useState([
-    { id: 1, name: "Can Yılmaz", username: "@canyilmaz", followers: "12.5K" },
-    { id: 2, name: "Elif Demir", username: "@elifdemir", followers: "8.2K" },
-    { id: 3, name: "Mert Kaya", username: "@mertkaya", followers: "5.7K" },
-  ]);
+    fetchPosts();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/login");
   };
 
-  const handleAddPost = (postData) => {
-    const post = {
-      id: posts.length + 1,
-      user: "Mevcut Kullanıcı",
-      username: "@user",
-      content: postData.content,
-      likes: 0,
-      comments: 0,
-      reposts: 0,
-      time: "şimdi",
-      poll: postData.poll
-        ? {
-            options: postData.poll.options.map((opt) => ({
-              text: opt,
-              votes: 0,
-            })),
-            totalVotes: 0,
-            timeLeft: `${postData.poll.duration} gün`,
-          }
-        : null,
+  const handleAddPost = (createdPost) => {
+    const normalized = {
+      ...createdPost,
+      id: createdPost._id,
     };
-
-    setPosts([post, ...posts]);
+    setPosts([normalized, ...posts]);
   };
 
-  const handleLike = (id) => {
+  const handleLike = (updatedPost) => {
     setPosts(
-      posts.map((post) =>
-        post.id === id ? { ...post, likes: post.likes + 1 } : post
+      posts.map((post) => (post._id === updatedPost._id ? updatedPost : post))
+    );
+  };
+  const handleUpdate = (updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
       )
     );
   };
@@ -177,7 +123,7 @@ const Home = () => {
               href="#"
               className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
             >
-              <User className="h-6 w-6" />
+              <UserIcon className="h-6 w-6" />
               <span className="font-medium">Profil</span>
             </a>
             <a
@@ -218,15 +164,22 @@ const Home = () => {
 
         <div className="max-w-3xl mx-auto px-4 py-6">
           <CreatePost onAddPost={handleAddPost} />
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <Post
-                key={post.id}
-                post={post}
-                onLike={() => handleLike(post.id)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <p>Yükleniyor...</p>
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <Post
+                  key={post._id || post.id} // her ihtimale karşılık _id varsa onu kullan
+                  post={post}
+                  onLike={() => handleLike(post._id || post.id)}
+                  onUpdate={handleUpdate}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
@@ -239,21 +192,7 @@ const Home = () => {
               <TrendingUp className="h-5 w-5 mr-2" />
               Gündemdekiler
             </h2>
-            <div className="space-y-4">
-              {trendingTopics.map((topic) => (
-                <div
-                  key={topic.id}
-                  className="cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
-                >
-                  <div className="font-medium text-primary-500">
-                    {topic.name}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {topic.posts} gönderi
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="space-y-4">{/* Trending Topics List */}</div>
           </div>
 
           {/* Suggested Users */}
@@ -262,22 +201,7 @@ const Home = () => {
               <Users className="h-5 w-5 mr-2" />
               Önerilen Kullanıcılar
             </h2>
-            <div className="space-y-4">
-              {suggestedUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between hover:bg-gray-100 p-2 rounded-lg transition-colors"
-                >
-                  <div>
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-gray-500">{user.username}</div>
-                  </div>
-                  <button className="text-sm bg-primary-500 text-white px-4 py-1 rounded-full hover:bg-primary-600 transition-colors">
-                    Takip Et
-                  </button>
-                </div>
-              ))}
-            </div>
+            <div className="space-y-4">{/* Suggested Users List */}</div>
           </div>
         </div>
       </aside>

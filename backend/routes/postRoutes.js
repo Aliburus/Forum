@@ -8,6 +8,7 @@ router.post("/posts", verifyToken, postController.createPost);
 router.put("/posts/:id", verifyToken, postController.updatePost);
 router.delete("/posts/:id", verifyToken, postController.deletePost);
 
-router.get("/posts", postController.getPosts); // Postları anonim kullanıcılar da görebilir
-
+router.get("/posts", postController.getPosts);
+router.post("/posts/:id/like", verifyToken, postController.likePost);
+router.post("/posts/:id/dislike", verifyToken, postController.dislikePost);
 module.exports = router;
