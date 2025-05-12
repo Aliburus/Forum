@@ -7,6 +7,7 @@ const commentRoutes = require("./routes/commentRoutes");
 const pollRoutes = require("./routes/pollsRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const app = express();
+
 const PORT = process.env.PORT || 5000;
 
 app.use(
