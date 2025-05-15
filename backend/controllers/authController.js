@@ -7,6 +7,8 @@ const secretKey = process.env.JWT_SECRET_KEY;
 
 const login = async (req, res) => {
   const { email, password } = req.body;
+  console.log("Login request body:", req.body);
+
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(400).json({ message: "Geçersiz email veya şifre" });
@@ -88,4 +90,7 @@ const logout = (req, res) => {
 
   return res.status(200).json({ message: "Çıkış başarılı" });
 };
-module.exports = { login, refreshToken, logout };
+const authCheck = (req, res) => {
+  return res.status(200).json({ authenticated: true });
+};
+module.exports = { login, refreshToken, logout, authCheck };

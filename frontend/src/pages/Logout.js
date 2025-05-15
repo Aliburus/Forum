@@ -1,22 +1,15 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { logoutUser } from "../services/userServices";
 
 const Logout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Token ve refresh token'ı temizle
-    localStorage.removeItem("token");
-
-    // Backend'den logout işlemi yap
-    axios
-      .post(
-        `${process.env.REACT_APP_API_URL}/logout`,
-        {},
-        { withCredentials: true }
-      )
+    // Servisi kullanarak backend'den çıkış işlemi
+    logoutUser()
       .then(() => {
+        // Cookie temizlendikten sonra login sayfasına yönlendir
         navigate("/login");
       })
       .catch((err) => {

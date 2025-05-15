@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createUser } from "../services/userServices";
+import { registerUser } from "../services/userServices";
 import {
   UserPlus,
   User,
@@ -33,7 +33,7 @@ const Register = () => {
     };
 
     try {
-      const response = await createUser(userData);
+      const response = await registerUser(userData);
       if (response.status === 201) {
         setSuccess(true);
         setError("");

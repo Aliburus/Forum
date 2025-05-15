@@ -1,27 +1,22 @@
-// routes/userRoutes.js
 const express = require("express");
 const userController = require("../controllers/userController");
-const login = require("../controllers/authController").login; // login fonksiyonunu authController'dan alıyoruz
+const { login, logout } = require("../controllers/authController");
+const { verifyToken } = require("../middleware/authMiddleware");
+const { changePassword } = require("../controllers/userController");
 const router = express.Router();
 
-// Kullanıcı ekleme
 router.post("/register", userController.createUser);
 router.post("/login", login);
-// Kullanıcıları listeleme
+router.post("/logout", logout);
+
 router.get("/users", userController.getUsers);
-
-// Kullanıcıyı ID ile getirme
 router.get("/users/:id", userController.getUserById);
-
-// Kullanıcıyı güncelleme
+router.get("/users/email/:email", userController.getUserByEmail);
 router.put("/users/:id", userController.updateUser);
-
-// Kullanıcıyı silme
 router.delete("/users/:id", userController.deleteUser);
 
-// Kullanıcıyı email ile getirme
-router.get("/users/email/:email", userController.getUserByEmail);
-router.post("/logout", require("../controllers/authController").logout);
-// Login işlemi
+// Profil bilgisi cookie-based auth ile
+router.get("/profile", verifyToken, userController.getProfile);
 
+router.put("/change-password", verifyToken, changePassword);
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../services/authServices";
+import { loginUser, getProfile } from "../services/userServices";
 import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
 
 const Login = () => {
@@ -14,31 +14,14 @@ const Login = () => {
     setError("");
 
     try {
-      const { data } = await loginUser({ email, password });
+      // 1) Cookie-based login
+      await loginUser({ email, password });
 
-      if (!data.token) {
-        setError("Token alınamadı. Lütfen tekrar deneyin.");
-        return;
-      }
+      // 2) Profil bilgisini çek
+      const { data: profile } = await getProfile();
 
-      localStorage.setItem("token", data.token);
-
-      const token = data.token;
-      let decodedToken;
-      try {
-        decodedToken = JSON.parse(atob(token.split(".")[1]));
-      } catch (error) {
-        setError("Token çözülürken bir hata oluştu.");
-        return;
-      }
-
-      if (!decodedToken) {
-        setError("Token geçersiz.");
-        return;
-      }
-
-      const userType = decodedToken.userType;
-      if (userType === "admin") {
+      // 3) userType’a göre yönlendir
+      if (profile.userType === "admin") {
         navigate("/admin");
       } else {
         navigate("/home");

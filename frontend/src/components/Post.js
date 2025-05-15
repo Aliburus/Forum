@@ -1,136 +1,84 @@
-import { useState, useEffect } from "react";
-import {
-  User,
-  MessageCircle,
-  Repeat,
-  Heart,
-  ThumbsDown,
-  Share2,
-} from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Heart, ThumbsDown } from "lucide-react";
 import { likePost, dislikePost } from "../services/postServices";
 
 const Post = ({ post, onUpdate }) => {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
-  const [reposted, setReposted] = useState(false);
-  const token = localStorage.getItem("token");
+
+  const userId = useMemo(() => localStorage.getItem("userId"), []);
 
   useEffect(() => {
-    // Set like and dislike states based on the post data
-    const userId = localStorage.getItem("userId");
     setLiked(post.likedBy?.includes(userId));
     setDisliked(post.dislikedBy?.includes(userId));
-  }, [post]);
+  }, [post.likedBy, post.dislikedBy, userId]);
 
   const handleLike = async () => {
-    if (!liked && !disliked) {
-      try {
-        const { data } = await likePost(post._id, token);
-        setLiked(true);
-        onUpdate({
-          ...data,
-          likes: data.likes,
-        });
-      } catch (error) {
-        console.error("Error liking post:", error);
-      }
+    try {
+      const { data } = await likePost(post._id);
+      setLiked(data.likedBy.includes(userId));
+      setDisliked(data.dislikedBy.includes(userId));
+      onUpdate(data);
+    } catch (error) {
+      console.error("Error liking post:", error);
     }
   };
 
   const handleDislike = async () => {
-    if (!disliked && !liked) {
-      try {
-        const { data } = await dislikePost(post._id, token);
-        setDisliked(true);
-        onUpdate({
-          ...data,
-          dislikes: data.dislikes,
-        });
-      } catch (error) {
-        console.error("Error disliking post:", error);
-      }
-    }
-  };
-
-  const handleRepost = async () => {
     try {
-      setReposted(!reposted);
-      onUpdate({
-        ...post,
-        reposts: reposted ? post.reposts - 1 : post.reposts + 1,
-      });
+      const { data } = await dislikePost(post._id);
+      setDisliked(data.dislikedBy.includes(userId));
+      setLiked(data.likedBy.includes(userId));
+      onUpdate(data);
     } catch (error) {
-      console.error("Error reposting:", error);
+      console.error("Error disliking post:", error);
     }
   };
-
-  const name = post.user?.name || post.user?.username || "Unknown";
-  const username = post.user?.username || "";
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow duration-300">
-      <div className="flex space-x-4">
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-            <User className="h-6 w-6 text-primary-500" />
-          </div>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center space-x-3 mb-4">
+        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary-500 to-indigo-600 flex items-center justify-center text-white font-medium">
+          {post.user?.name?.charAt(0) || "U"}
         </div>
-
-        <div className="flex-grow">
-          <div className="flex items-center space-x-2">
-            <span className="font-bold">{name}</span>
-            {username && <span className="text-gray-500">@{username}</span>}
-            <span className="text-gray-500">·</span>
-            <span className="text-gray-500">
-              {new Date(post.createdAt).toLocaleString()}
-            </span>
-          </div>
-
-          <p className="mt-2 text-gray-900">{post.content}</p>
-
-          <div className="mt-3 flex items-center space-x-8 text-gray-500">
-            <button className="flex items-center space-x-2 hover:text-primary-500 transition-colors">
-              <MessageCircle className="h-5 w-5" />
-              <span>{post.comments || 0}</span>
-            </button>
-
-            <button
-              onClick={handleRepost}
-              className={`flex items-center space-x-2 transition-colors ${
-                reposted ? "text-green-500" : "hover:text-green-500"
-              }`}
-            >
-              <Repeat className="h-5 w-5" />
-              <span>{post.reposts || 0}</span>
-            </button>
-
-            <button
-              onClick={handleLike}
-              className={`flex items-center space-x-2 transition-colors ${
-                liked ? "text-red-500" : "hover:text-red-500"
-              }`}
-              disabled={liked}
-            >
-              <Heart className="h-5 w-5" />
-              <span>{post.like || 0}</span>
-            </button>
-
-            <button
-              onClick={handleDislike}
-              className={`flex items-center space-x-2 transition-colors ${
-                disliked ? "text-blue-500" : "hover:text-blue-500"
-              }`}
-              disabled={disliked}
-            >
-              <ThumbsDown className="h-5 w-5" />
-              <span>{post.dislike || 0}</span>
-            </button>
-
-            <button className="flex items-center space-x-2 hover:text-primary-500 transition-colors">
-              <Share2 className="h-5 w-5" />
-            </button>
-          </div>
+        <div>
+          <h3 className="font-medium text-gray-900">
+            {post.user?.name || "Kullanıcı Adı"}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {new Date(post.createdAt).toLocaleString("tr-TR")}
+          </p>
         </div>
+      </div>
+
+      <p className="text-gray-800 text-base mb-4 whitespace-pre-line">
+        {post.content}
+      </p>
+
+      <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+        <button
+          onClick={handleLike}
+          className={`flex items-center space-x-2 transition-colors duration-200 ${
+            liked
+              ? "text-red-500 bg-red-50 px-3 py-1 rounded-full"
+              : "text-gray-600 hover:text-red-500"
+          }`}
+        >
+          <Heart className={`h-5 w-5 ${liked ? "fill-current" : ""}`} />
+          <span className="text-sm font-medium">{post.like || 0}</span>
+        </button>
+
+        <button
+          onClick={handleDislike}
+          className={`flex items-center space-x-2 transition-colors duration-200 ${
+            disliked
+              ? "text-blue-500 bg-blue-50 px-3 py-1 rounded-full"
+              : "text-gray-600 hover:text-blue-500"
+          }`}
+        >
+          <ThumbsDown className={`h-5 w-5 ${disliked ? "fill-current" : ""}`} />
+          <span className="text-sm font-medium">{post.dislike || 0}</span>
+        </button>
       </div>
     </div>
   );

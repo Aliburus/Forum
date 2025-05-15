@@ -1,7 +1,5 @@
-const POST = require("../models/postModel");
-
-// Post oluşturma
-const Post = require("../models/postModel");
+const Post = require("../models/postModel"); // Modeli doğru bir şekilde import ediyoruz.
+const mongoose = require("mongoose");
 
 const createPost = async (req, res) => {
   try {
@@ -16,7 +14,6 @@ const createPost = async (req, res) => {
     const newPost = new Post({
       user: req.user.id, // verifyToken middleware’ın req.user.id verdiğinden emin ol
       content,
-      // (Title artık schema’da yok, başka required alan da yok.)
     });
 
     const saved = await newPost.save();
@@ -34,7 +31,7 @@ const getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .populate("user", "name username") // <-- burayı ekledik
+      .populate("user", "name username") // <-- populate ile user bilgilerini ekliyoruz
       .lean();
     res.json(posts);
   } catch (err) {
@@ -43,37 +40,45 @@ const getPosts = async (req, res) => {
   }
 };
 
-// Post güncelleme
 const updatePost = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, content } = req.body;
-    const updatedPost = await POST.findByIdAndUpdate(
-      id,
-      { title, content },
-      { new: true }
-    );
-    if (!updatedPost) {
-      return res.status(404).json({ message: "Post not found" });
+    const { id } = req.params; // URL'den gelen ID'yi alıyoruz
+    const { content } = req.body; // Güncellenmiş içeriği alıyoruz
+
+    console.log("Gelen ID:", id); // ID'yi logla
+
+    // Geçerli bir ObjectId olup olmadığını kontrol ediyoruz
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Geçersiz ID" });
     }
+
+    // Postu güncelle
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      { content }, // Sadece content'i güncelliyoruz
+      { new: true } // Güncellenmiş postu döndürüyoruz
+    );
+
+    if (!updatedPost) {
+      return res.status(404).json({ message: "Post bulunamadı" });
+    }
+
     res.status(200).json(updatedPost);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "Server Error" });
+    console.error("🔥 updatePost ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 };
-
-// Post silme
 const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedPost = await POST.findByIdAndDelete(id);
+    const deletedPost = await Post.findByIdAndDelete(id); // Burada doğru model `Post`
     if (!deletedPost) {
-      return res.status(404).json({ message: "Post not found" });
+      return res.status(404).json({ message: "Post bulunamadı" });
     }
     res.status(200).json({ message: "Post deleted successfully" });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -85,18 +90,26 @@ const likePost = async (req, res) => {
     const post = await POST.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    let updated = false;
+
     if (post.likedBy.includes(userId)) {
-      return res.status(400).json({ message: "Bu postu zaten beğendiniz" });
+      post.likedBy.pull(userId);
+      post.like = Math.max(post.like - 1, 0);
+      updated = true;
+    } else {
+      if (post.dislikedBy.includes(userId)) {
+        post.dislikedBy.pull(userId);
+        post.dislike = Math.max(post.dislike - 1, 0);
+      }
+      post.likedBy.push(userId);
+      post.like += 1;
+      updated = true;
     }
 
-    if (post.dislikedBy.includes(userId)) {
-      post.dislikedBy.pull(userId);
-      post.dislike -= 1;
-    }
+    if (updated) await post.save();
 
-    post.like += 1;
-    post.likedBy.push(userId);
-    await post.save();
+    // sadece `user`'ı doldur, başka ilişkilerle uğraşma
+    await post.populate("user", "name username");
 
     res.status(200).json(post);
   } catch (err) {
@@ -114,18 +127,25 @@ const dislikePost = async (req, res) => {
     const post = await POST.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
+    let updated = false;
+
     if (post.dislikedBy.includes(userId)) {
-      return res.status(400).json({ message: "Bu postu zaten beğenmediniz" });
+      post.dislikedBy.pull(userId);
+      post.dislike = Math.max(post.dislike - 1, 0);
+      updated = true;
+    } else {
+      if (post.likedBy.includes(userId)) {
+        post.likedBy.pull(userId);
+        post.like = Math.max(post.like - 1, 0);
+      }
+      post.dislikedBy.push(userId);
+      post.dislike += 1;
+      updated = true;
     }
 
-    if (post.likedBy.includes(userId)) {
-      post.likedBy.pull(userId);
-      post.like -= 1;
-    }
+    if (updated) await post.save();
 
-    post.dislike += 1;
-    post.dislikedBy.push(userId);
-    await post.save();
+    await post.populate("user", "name username");
 
     res.status(200).json(post);
   } catch (err) {
@@ -133,7 +153,18 @@ const dislikePost = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
+const getPostsForUser = async (req, res) => {
+  try {
+    const posts = await Post.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate("user", "name username")
+      .lean();
+    res.json(posts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};
 // Routes'da doğrulama işlemi eklemek için middleware ekleyin
 module.exports = {
   createPost,
@@ -142,4 +173,5 @@ module.exports = {
   deletePost,
   likePost,
   dislikePost,
+  getPostsForUser,
 };

@@ -1,6 +1,7 @@
+// backend/models/userModel.js
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
 const UserSchema = new Schema(
   {
@@ -16,14 +17,13 @@ const UserSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      match: [/^\S+@\S+\.\S+$/, "Geçerli bir email giriniz"],
     },
+
     password: {
       type: String,
       required: true,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+      minlength: 6,
     },
 
     userType: {
@@ -33,14 +33,18 @@ const UserSchema = new Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: true, // createdAt & updatedAt
   }
 );
+
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
-const User = mongoose.model("User", UserSchema);
+
+// Eğer daha önce tanımlandıysa overwrite etmeyelim:
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
+
 module.exports = User;

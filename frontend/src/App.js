@@ -4,21 +4,23 @@ import {
   Routes,
   Route,
   Navigate,
-} from "react-router-dom"; // Navigate'i burada import ettik
+} from "react-router-dom";
 import HomePage from "./pages/Home";
-import AdminPage from "./pages/Admin/Admin";
 import Login from "./pages/Login";
 import Logout from "./pages/Logout";
-import PrivateRoute from "./components/PrivateRoute";
 import Register from "./pages/Register";
+import PrivateRoute from "./components/PrivateRoute";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/profile" element={<Profile />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/logout" element={<Logout />} />
+
         <Route
           path="/home"
           element={
@@ -27,15 +29,9 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/admin"
-          element={
-            <PrivateRoute>
-              <AdminPage />
-            </PrivateRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/login" />} />
+
+        {/* Diğer tüm yollar login’e yönlensin */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

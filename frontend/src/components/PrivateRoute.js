@@ -1,24 +1,31 @@
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
+import { checkAuth } from "../services/authService";
 
 const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
-  if (!token) {
-    return <Navigate to="/login" />;
-  }
+  useEffect(() => {
+    const verify = async () => {
+      try {
+        const data = await checkAuth();
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (err) {
+        setIsAuthenticated(false);
+      }
+    };
 
-  try {
-    const decoded = jwtDecode(token);
+    verify();
+  }, []);
 
-    if (decoded.exp * 1000 < Date.now()) {
-      return <Navigate to="/login" />;
-    }
+  if (isAuthenticated === null) return <div>Yükleniyor...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-    return children;
-  } catch (e) {
-    return <Navigate to="/login" />;
-  }
+  return children;
 };
 
 export default PrivateRoute;

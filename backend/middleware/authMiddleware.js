@@ -2,13 +2,12 @@ const jwt = require("jsonwebtoken");
 const secretKey = process.env.JWT_SECRET_KEY;
 
 const verifyToken = (req, res, next) => {
-  const bearer = req.header("Authorization");
-  if (!bearer) return res.status(401).json({ message: "Token yok." });
+  const token = req.cookies.token; // header yerine cookie’den alıyoruz
+  if (!token) return res.status(401).json({ message: "Token yok." });
 
-  const token = bearer.split(" ")[1];
   try {
     const decoded = jwt.verify(token, secretKey);
-    req.user = decoded;
+    req.user = decoded; // { id, userType }
     next();
   } catch (err) {
     return res.status(403).json({ message: "Geçersiz token." });
