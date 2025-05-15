@@ -13,16 +13,12 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "Tüm alanları doldurun." });
     }
 
-    // Şifreyi hash'le
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // Yeni kullanıcı oluştur
     const newUser = new User({
       name,
       surname,
       email,
-      password: hashedPassword,
+      password, // Model hook'u şifreyi hash'leyecek
       userType: "user",
     });
 

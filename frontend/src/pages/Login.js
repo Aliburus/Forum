@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginUser, getProfile } from "../services/userServices";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { loginUser, getProfile, logoutUser } from "../services/userServices";
 import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
 
 const Login = () => {
@@ -8,6 +8,72 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Cookie'leri temizle
+  const clearCookies = useCallback(() => {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    localStorage.clear();
+    sessionStorage.clear();
+  }, []);
+
+  // Otomatik logout işlemi
+  const handleAutoLogout = useCallback(async () => {
+    try {
+      await logoutUser();
+      clearCookies();
+      // Sayfayı yenile
+      window.location.reload();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  }, [clearCookies]);
+
+  // Sayfa yüklendiğinde ve geri tuşu ile gelindiğinde kontrol et
+  useEffect(() => {
+    let isBackNavigation = false;
+
+    const handlePopState = async (event) => {
+      if (location.pathname === "/login") {
+        isBackNavigation = true;
+        await handleAutoLogout();
+      }
+    };
+
+    const handleBeforeUnload = (event) => {
+      if (isBackNavigation) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+
+    // Sayfa ilk yüklendiğinde temizle
+    clearCookies();
+
+    // Geri tuşu olayını dinle
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // History API'sini override et
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function (state, title, url) {
+      if (url === "/login") {
+        handleAutoLogout();
+      }
+      return originalPushState.apply(this, arguments);
+    };
+
+    // Component unmount olduğunda event listener'ları temizle
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.history.pushState = originalPushState;
+    };
+  }, [location, handleAutoLogout, clearCookies]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,11 +86,11 @@ const Login = () => {
       // 2) Profil bilgisini çek
       const { data: profile } = await getProfile();
 
-      // 3) userType’a göre yönlendir
+      // 3) userType'a göre yönlendir
       if (profile.userType === "admin") {
-        navigate("/admin");
+        navigate("/admin", { replace: true });
       } else {
-        navigate("/home");
+        navigate("/home", { replace: true });
       }
     } catch (err) {
       const msg = err.response?.data?.message || "Giriş sırasında hata oluştu";

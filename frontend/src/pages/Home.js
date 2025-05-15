@@ -130,17 +130,6 @@ const Home = () => {
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold text-gray-900">Ana Sayfa</h2>
-
-            <div className="relative w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-sm"
-                placeholder="Gönderilerde ara..."
-              />
-            </div>
           </div>
           <div className="mb-4">
             <CreatePost onAddPost={handleAddPost} />

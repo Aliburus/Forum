@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // API base URL
-const BASE = "http://localhost:5000/api";
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 // Axios instance oluştur
 const api = axios.create({
@@ -48,16 +48,16 @@ api.interceptors.response.use(
 export const registerUser = (userData) => api.post("/users/register", userData);
 
 // 2. Giriş
-export const loginUser = (credentials) => api.post("/users/login", credentials);
+export const loginUser = (credentials) => api.post("/auth/login", credentials);
 
 // 3. Çıkış
 export const logoutUser = () => {
   localStorage.removeItem("token");
-  return api.post("/users/logout");
+  return api.post("/auth/logout");
 };
 
 // 4. Token yenileme
-export const refreshToken = () => api.post("/refresh-token");
+export const refreshToken = () => api.post("/auth/refresh-token");
 
 // ----------------------------------------------------
 // Kullanıcı CRUD & Profil

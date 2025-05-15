@@ -12,7 +12,7 @@ const createPost = async (req, res) => {
     }
 
     const newPost = new Post({
-      user: req.user.id, // verifyToken middleware’ın req.user.id verdiğinden emin ol
+      user: req.user.id, // verifyToken middleware'ın req.user.id verdiğinden emin ol
       content,
     });
 
@@ -87,20 +87,29 @@ const likePost = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const post = await POST.findById(id);
+    const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     let updated = false;
 
-    if (post.likedBy.includes(userId)) {
-      post.likedBy.pull(userId);
+    // ObjectId'leri string'e çevirerek karşılaştırma yapıyoruz
+    const likedByStrings = post.likedBy.map((id) => id.toString());
+    const dislikedByStrings = post.dislikedBy.map((id) => id.toString());
+
+    if (likedByStrings.includes(userId)) {
+      // Beğeniyi kaldır
+      post.likedBy = post.likedBy.filter((id) => id.toString() !== userId);
       post.like = Math.max(post.like - 1, 0);
       updated = true;
     } else {
-      if (post.dislikedBy.includes(userId)) {
-        post.dislikedBy.pull(userId);
+      // Eğer dislike varsa onu kaldır
+      if (dislikedByStrings.includes(userId)) {
+        post.dislikedBy = post.dislikedBy.filter(
+          (id) => id.toString() !== userId
+        );
         post.dislike = Math.max(post.dislike - 1, 0);
       }
+      // Yeni like ekle
       post.likedBy.push(userId);
       post.like += 1;
       updated = true;
@@ -108,9 +117,7 @@ const likePost = async (req, res) => {
 
     if (updated) await post.save();
 
-    // sadece `user`'ı doldur, başka ilişkilerle uğraşma
     await post.populate("user", "name username");
-
     res.status(200).json(post);
   } catch (err) {
     console.error("🔥 likePost ERROR:", err);
@@ -124,20 +131,29 @@ const dislikePost = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const post = await POST.findById(id);
+    const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     let updated = false;
 
-    if (post.dislikedBy.includes(userId)) {
-      post.dislikedBy.pull(userId);
+    // ObjectId'leri string'e çevirerek karşılaştırma yapıyoruz
+    const likedByStrings = post.likedBy.map((id) => id.toString());
+    const dislikedByStrings = post.dislikedBy.map((id) => id.toString());
+
+    if (dislikedByStrings.includes(userId)) {
+      // Dislike'ı kaldır
+      post.dislikedBy = post.dislikedBy.filter(
+        (id) => id.toString() !== userId
+      );
       post.dislike = Math.max(post.dislike - 1, 0);
       updated = true;
     } else {
-      if (post.likedBy.includes(userId)) {
-        post.likedBy.pull(userId);
+      // Eğer like varsa onu kaldır
+      if (likedByStrings.includes(userId)) {
+        post.likedBy = post.likedBy.filter((id) => id.toString() !== userId);
         post.like = Math.max(post.like - 1, 0);
       }
+      // Yeni dislike ekle
       post.dislikedBy.push(userId);
       post.dislike += 1;
       updated = true;
@@ -146,7 +162,6 @@ const dislikePost = async (req, res) => {
     if (updated) await post.save();
 
     await post.populate("user", "name username");
-
     res.status(200).json(post);
   } catch (err) {
     console.error("🔥 dislikePost ERROR:", err);
