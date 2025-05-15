@@ -12,12 +12,11 @@ export const createPost = (data) =>
   axios.post(API, data, { withCredentials: true });
 
 export const updatePost = (id, content) => {
-  const encodedId = encodeURIComponent(id); // ID'yi encode et
-  return axios.put(
-    `${API}/${encodedId}`,
-    { content },
-    { withCredentials: true }
-  );
+  if (!id || typeof id !== "string" || id.length !== 24) {
+    return Promise.reject(new Error("Geçersiz post ID'si"));
+  }
+
+  return axios.put(`${API}/${id}`, { content }, { withCredentials: true });
 };
 
 // Post silme (auth gerekir)

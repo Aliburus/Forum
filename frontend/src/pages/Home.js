@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { LogOut, Home as HomeIcon, Settings, Search } from "lucide-react";
 import Post from "../components/Post";
@@ -11,37 +11,69 @@ const Home = () => {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getPosts();
+      setPosts(response.data);
+      setError("");
+    } catch (err) {
+      setError("Gönderiler yüklenirken bir hata oluştu");
+      console.error("Gönderi yükleme hatası:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        const res = await getPosts();
-        setPosts(res.data);
-      } catch (err) {
-        console.error("Post fetch error:", err);
-        setError("Gönderiler yüklenirken bir hata oluştu.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchPosts();
+  }, [fetchPosts]);
+
+  const handleAddPost = useCallback((newPost) => {
+    setPosts((prevPosts) => [newPost, ...prevPosts]);
   }, []);
+
+  const handlePostUpdate = useCallback((updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+  }, []);
+
+  const handlePostDelete = useCallback((deletedPostId) => {
+    setPosts((prevPosts) =>
+      prevPosts.filter((post) => post._id !== deletedPostId)
+    );
+  }, []);
+
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }, [posts]);
 
   const handleLogout = () => {
     logoutUser().finally(() => navigate("/login"));
   };
 
-  const handleAddPost = (newPost) => {
-    setPosts([newPost, ...posts]);
-  };
-
-  const handleUpdate = (updatedPost) => {
-    setPosts((prev) =>
-      prev.map((p) => (p._id === updatedPost._id ? updatedPost : p))
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -113,35 +145,15 @@ const Home = () => {
           <div className="mb-4">
             <CreatePost onAddPost={handleAddPost} />
           </div>
-          {loading && (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              <div className="flex items-center">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {error}
-              </div>
-            </div>
-          )}
-
           {!loading && !error && (
             <div className="space-y-6">
-              {posts.map((post) => (
-                <Post key={post._id} post={post} onUpdate={handleUpdate} />
+              {sortedPosts.map((post) => (
+                <Post
+                  key={post._id}
+                  post={post}
+                  onUpdate={handlePostUpdate}
+                  onDelete={handlePostDelete}
+                />
               ))}
             </div>
           )}
@@ -151,4 +163,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default React.memo(Home);

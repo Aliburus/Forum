@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   getProfile,
   changePassword,
@@ -29,88 +29,100 @@ export default function Profile() {
   const [newContent, setNewContent] = useState(""); // Yeni içerik
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Profil bilgilerini ve paylaşımları aynı anda alıyoruz
-    const fetchProfile = async () => {
-      try {
-        const profileResponse = await getProfile();
-        setProfile(profileResponse.data);
-        const postsResponse = await getPostsForUser();
-        setPosts(postsResponse.data);
-        setLoading(false);
-      } catch (err) {
-        setError("Profil bilgileri veya paylaşımlar alınamadı.");
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+  const fetchProfile = useCallback(async () => {
+    try {
+      const profileResponse = await getProfile();
+      setProfile(profileResponse.data);
+      const postsResponse = await getPostsForUser();
+      setPosts(postsResponse.data);
+      setLoading(false);
+    } catch (err) {
+      setError("Profil bilgileri veya paylaşımlar alınamadı.");
+      setLoading(false);
+    }
   }, []);
 
-  // Şifre değiştirme fonksiyonu
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Yeni şifreler eşleşmiyor");
-      return;
-    }
-    try {
-      await changePassword(currentPassword, newPassword);
-      setPasswordSuccess("Şifre başarıyla değiştirildi");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setPasswordError("");
-    } catch (err) {
-      setPasswordError("Şifre değiştirme işlemi başarısız");
-    }
-  };
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
-  // Çıkış yapma fonksiyonu
-  const handleLogout = async () => {
+  const handlePasswordChange = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (newPassword !== confirmPassword) {
+        setPasswordError("Yeni şifreler eşleşmiyor");
+        return;
+      }
+      try {
+        await changePassword(currentPassword, newPassword);
+        setPasswordSuccess("Şifre başarıyla değiştirildi");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError("");
+      } catch (err) {
+        setPasswordError("Şifre değiştirme işlemi başarısız");
+      }
+    },
+    [currentPassword, newPassword, confirmPassword]
+  );
+
+  const handleLogout = useCallback(async () => {
     try {
-      await logoutUser(); // Çıkış işlemi
-      navigate("/login"); // Çıkış yaptıktan sonra login sayfasına yönlendir
+      await logoutUser();
+      navigate("/login");
     } catch (err) {
       console.error("Çıkış hatası:", err);
       setError("Çıkış işlemi sırasında bir hata oluştu.");
     }
-  };
+  }, [navigate]);
 
-  const handleUpdatePost = async (id, updatedContent) => {
+  const handleUpdatePost = useCallback(async (id, updatedContent) => {
     try {
-      const updatedPost = await updatePost(id, updatedContent); // content yerine sadece content gönderiyoruz
-      setPosts(
-        posts.map((post) => (post._id === id ? updatedPost.data : post))
-      );
-      setIsModalOpen(false); // Modalı kapat
-      setNewContent(""); // İçeriği temizle
-    } catch (err) {
-      setError("Post güncellenirken bir hata oluştu.");
-    }
-  };
+      if (!id || typeof id !== "string" || id.length !== 24) {
+        setError("Geçersiz post ID'si");
+        return;
+      }
 
-  // Post silme fonksiyonu
-  const handleDeletePost = async (id) => {
+      const updatedPost = await updatePost(id, updatedContent);
+      setPosts((prevPosts) =>
+        prevPosts.map((post) => (post._id === id ? updatedPost.data : post))
+      );
+      setIsModalOpen(false);
+      setNewContent("");
+      setError("");
+    } catch (err) {
+      console.error("Post güncelleme hatası:", err);
+      setError(
+        err.response?.data?.message || "Post güncellenirken bir hata oluştu."
+      );
+    }
+  }, []);
+
+  const handleDeletePost = useCallback(async (id) => {
     try {
       await deletePost(id);
-      setPosts(posts.filter((post) => post._id !== id));
+      setPosts((prevPosts) => prevPosts.filter((post) => post._id !== id));
     } catch (err) {
       setError("Post silinirken bir hata oluştu.");
     }
-  };
+  }, []);
 
-  // Modalı açma fonksiyonu
-  const openModal = (postId, content) => {
+  const openModal = useCallback((postId, content) => {
     setSelectedPostId(postId);
     setNewContent(content);
-    setIsModalOpen(true); // Modalı aç
-  };
+    setIsModalOpen(true);
+  }, []);
 
-  // Modalı kapama fonksiyonu
-  const closeModal = () => {
-    setIsModalOpen(false); // Modalı kapat
-    setNewContent(""); // İçeriği temizle
-  };
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setNewContent("");
+  }, []);
+
+  const formattedDate = useMemo(() => {
+    if (!profile?.createdAt) return "";
+    return new Date(profile.createdAt).toLocaleDateString("tr-TR");
+  }, [profile?.createdAt]);
 
   if (loading) {
     return (
@@ -167,9 +179,7 @@ export default function Profile() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Üyelik Tarihi</p>
-                  <p className="font-medium text-gray-900">
-                    {new Date(profile?.createdAt).toLocaleDateString("tr-TR")}
-                  </p>
+                  <p className="font-medium text-gray-900">{formattedDate}</p>
                 </div>
               </div>
             </div>
@@ -291,6 +301,7 @@ export default function Profile() {
         onSave={handleUpdatePost}
         content={newContent}
         setContent={setNewContent}
+        postId={selectedPostId}
       />
     </div>
   );
