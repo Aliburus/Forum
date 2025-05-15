@@ -1,31 +1,46 @@
+const dotenv = require("dotenv");
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
-const cookieParser = require("cookie-parser"); // ← ekledik
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const postRoutes = require("./routes/postRoutes");
 const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 
+// Middleware
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true, // cookie’yi cross-site’de de göndermeyi sağlar
+    origin: "http://localhost:3000", // Frontend URL'i
+    credentials: true,
   })
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // ← cookie-parser’ı middleware olarak ekle
+app.use(cookieParser());
 
+// Database connection
 connectDB();
 
+// Routes
 app.use("/api", userRoutes);
 app.use("/api", postRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
+// Test route
 app.get("/", (req, res) => {
   res.send("Welcome to the backend server!");
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
 });
 
 const PORT = process.env.PORT || 5000;

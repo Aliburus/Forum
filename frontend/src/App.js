@@ -11,6 +11,7 @@ import Logout from "./pages/Logout";
 import Register from "./pages/Register";
 import PrivateRoute from "./components/PrivateRoute";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function App() {
   return (
@@ -30,7 +31,16 @@ function App() {
           }
         />
 
-        {/* Diğer tüm yollar login’e yönlensin */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Diğer tüm yollar login'e yönlensin */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

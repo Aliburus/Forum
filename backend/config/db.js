@@ -16,8 +16,15 @@ const connectDB = async () => {
     mongoose.connection.on("disconnected", () => {
       console.log("MongoDB bağlantısı kesildi");
     });
+
+    // Uygulama kapatıldığında bağlantıyı kapat
+    process.on("SIGINT", async () => {
+      await mongoose.connection.close();
+      process.exit(0);
+    });
   } catch (err) {
     console.log("MongoDB bağlantı hatası:", err.message);
+    process.exit(1);
   }
 };
 

@@ -1,54 +1,80 @@
 import axios from "axios";
 
 // API base URL
-const BASE = process.env.REACT_APP_API_URL; // e.g. http://localhost:5000/api
+const BASE = "http://localhost:5000/api";
+
+// Axios instance oluştur
+const api = axios.create({
+  baseURL: BASE,
+  withCredentials: true,
+});
+
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor
+api.interceptors.response.use(
+  (response) => {
+    // Login yanıtında token varsa sakla
+    if (response.data.token) {
+      localStorage.setItem("token", response.data.token);
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 403) {
+      localStorage.removeItem("token");
+    }
+    return Promise.reject(error);
+  }
+);
 
 // ----------------------------------------------------
 // Auth işlemleri
 // ----------------------------------------------------
 
 // 1. Kayıt
-export const registerUser = (userData) =>
-  axios.post(`${BASE}/register`, userData, { withCredentials: true });
+export const registerUser = (userData) => api.post("/users/register", userData);
 
 // 2. Giriş
-export const loginUser = (credentials) =>
-  axios.post(`${BASE}/login`, credentials, { withCredentials: true });
+export const loginUser = (credentials) => api.post("/users/login", credentials);
 
 // 3. Çıkış
-export const logoutUser = () =>
-  axios.post(`${BASE}/logout`, {}, { withCredentials: true });
+export const logoutUser = () => {
+  localStorage.removeItem("token");
+  return api.post("/users/logout");
+};
 
-// 4. Token yenileme (eğer implement ettiysen)
-export const refreshToken = () =>
-  axios.post(`${BASE}/refresh-token`, {}, { withCredentials: true });
+// 4. Token yenileme
+export const refreshToken = () => api.post("/refresh-token");
 
 // ----------------------------------------------------
 // Kullanıcı CRUD & Profil
 // ----------------------------------------------------
 
-export const getUsers = () =>
-  axios.get(`${BASE}/users`, { withCredentials: true });
+export const getUsers = () => api.get("/users");
 
-export const getUserById = (id) =>
-  axios.get(`${BASE}/users/${id}`, { withCredentials: true });
+export const getUserById = (id) => api.get(`/users/${id}`);
 
-export const getUserByEmail = (email) =>
-  axios.get(`${BASE}/users/email/${email}`, { withCredentials: true });
+export const getUserByEmail = (email) => api.get(`/users/email/${email}`);
 
-export const updateUser = (id, userData) =>
-  axios.put(`${BASE}/users/${id}`, userData, { withCredentials: true });
+export const updateUser = (id, userData) => api.put(`/users/${id}`, userData);
 
-export const deleteUser = (id) =>
-  axios.delete(`${BASE}/users/${id}`, { withCredentials: true });
+export const deleteUser = (id) => api.delete(`/users/${id}`);
 
 // 5. Profil bilgisi
-export const getProfile = () =>
-  axios.get(`${BASE}/profile`, { withCredentials: true });
+export const getProfile = () => api.get("/profile");
 
 export const changePassword = (currentPassword, newPassword) =>
-  axios.put(
-    `${BASE}/change-password`,
-    { currentPassword, newPassword },
-    { withCredentials: true }
-  );
+  api.put("/change-password", { currentPassword, newPassword });

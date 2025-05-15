@@ -13,15 +13,21 @@ const createUser = async (req, res) => {
       return res.status(400).json({ message: "Tüm alanları doldurun." });
     }
 
-    // pre-save hook modelde şifreyi hash'leyecek
+    // Şifreyi hash'le
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Yeni kullanıcı oluştur
     const newUser = new User({
       name,
       surname,
       email,
-      password,
+      password: hashedPassword,
       userType: "user",
     });
+
     await newUser.save();
+    console.log("Yeni kullanıcı oluşturuldu:", email);
 
     res.status(201).json({ message: "User created successfully" });
   } catch (err) {
